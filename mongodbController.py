@@ -7,93 +7,115 @@ from bson.objectid import ObjectId
 
 #run mongo server `$./mongod`
 
-mongoclient = pymongo.MongoClient("mongodb://localhost:27017/")
-comp4651DB = mongoclient["comp4651"] #DB name
-processCol = comp4651DB["process"] #user process collection
+MONGO_HOST = "localhost"
+MONGO_PORT = "27017"
 
-def getObjectId(idstring):
-    return ObjectId(idstring)
+class mongodbController:
+    def __init__(self,MONGO_HOST=MONGO_HOST,MONGO_PORT=MONGO_PORT):
+        url = "mongodb://{}:{}/".format(MONGO_HOST,MONGO_PORT)
+        self.mongoclient = pymongo.MongoClient(url)
+        self.comp4651DB = self.mongoclient["comp4651"] #DB name
+        self.processCol = self.comp4651DB["process"] #user process collection
 
-#status: pending, done, removed
-#===================users process============================#
+    def getObjectId(self,idstring):
+        return ObjectId(idstring)
 
-#return objectid string
-def insertUserProcess(username,status="pending"):
-    return str(processCol.insert_one(
-        {"username":username,"status":status}
-    ).inserted_id)
+    def listCollection(self):
+        print(self.comp4651DB.list_collection_names())
 
-#status="done"
-#return True if updated
-def updateUserProcess(userid):
-    objectid = getObjectId(userid)
-    if getUserProcess(objectid)=="removed":
-        print("Userid{} data is removed".format(objectid))
+    def dropCollection(self,colname):
+        if colname in self.comp4651DB.list_collection_names():
+            self.comp4651DB[colname].drop()
+            print("remove: ",colname)
+
+    #status: pending, done, removed
+    #===================users process============================#
+
+    #return objectid string
+    def insertUserProcess(self,username,status="pending"):
+        return str(self.processCol.insert_one(
+            {"username":username,"status":status}
+        ).inserted_id)
+
+    #status="done"
+    #return True if updated
+    def updateUserProcess(self,userid):
+        objectid = self.getObjectId(userid)
+        if self.getUserProcess(objectid)=="removed":
+            print("Userid{} data is removed".format(objectid))
+            return False
+        else:
+            self.processCol.update_one(
+                {"_id":objectid},
+                {"$set": {"status":"done"}}
+            )
+            return True
+
+    #return status
+    def getUserProcess(self,userid):
+        objectid = self.getObjectId(userid)
+        result = self.processCol.find_one({"_id":objectid})
+        return result["status"]
+    #print(getUserProcess(ObjectId("5de71d051d7cf1955bd01da5")))
+
+    #return user objectId or False for not found
+    def getUserID(self,username):
+        result = self.processCol.find({"username":username})
+        for x in result:
+            if x["status"]!="removed":
+                return str(x["_id"])
         return False
-    else:
-        processCol.update_one(
-            {"_id":objectid},
-            {"$set": {"status":"done"}}
+
+    def dropUserProcessCol(self):
+        self.dropCollection("process")
+
+    #===================user image=============================#
+
+    #return collection name
+    def createuserdb(self,username,replace=False):
+        colname = "user_"+str(username)
+        if replace:
+            #remove username status
+            self.processCol.update_many(
+                {"username":username},
+                { "$set": { "status": "removed" }}
+            )
+            self.dropCollection(colname)
+        return colname
+
+    #userid: user object id
+    #return objectid
+    def insertoneBase64(self,username,userid,frameno,imagename,base64):
+        return self.comp4651DB["user_"+str(username)].insert_one(
+            {"frameno":frameno,"name":imagename,"userid":userid,"base64":base64}
+        ).inserted_id
+
+    #return base64
+    def getBase64(self,username,userid,frameno):
+        result = self.comp4651DB["user_"+str(username)].find_one(
+            {"frameno":frameno,"userid":userid}
         )
-        return True
+        return result["base64"]
 
-#return status
-def getUserProcess(userid):
-    objectid = getObjectId(userid)
-    result = processCol.find_one({"_id":objectid})
-    return result["status"]
-#print(getUserProcess(ObjectId("5de71d051d7cf1955bd01da5")))
-
-#return user objectId or False for not found
-def getUserID(username):
-    result = processCol.find({"username":username})
-    for x in result:
-        if x["status"]!="removed":
-            return x["_id"]
-    return False
-
-#===================user image=============================#
-
-#return collection name
-def createuserdb(username,replace=False):
-    colname = "user_"+str(username)
-    if replace:
-        #remove username status
-        processCol.update_many(
-            {"username":username},
-            { "$set": { "status": "removed" }}
+    #find by objectid
+    #return base64
+    def getBase64ById(self,username,objectid):
+        result = self.comp4651DB["user_"+str(username)].find_one(
+            {"_id":objectid}
         )
-        if colname in comp4651DB.list_collection_names(): #replace same user
-            print("username database exists. removing")
-            comp4651DB[colname].drop()
-    return colname
+        return result["base64"]
 
-#userid: user object id
-#return objectid
-def insertoneBase64(username,userid,frameno,imagename,base64):
-    return comp4651DB["user_"+str(username)].insert_one(
-        {"frameno":frameno,"name":imagename,"userid":userid,"base64":base64}
-    ).inserted_id
+    def getAImage(self,username,userid,frameno):
+        return self.comp4651DB["user_"+str(username)].find_one(
+            {"frameno":frameno,"userid":userid}
+        )
 
-#return base64
-def getBase64(username,userid,frameno,imagename):
-    result = comp4651DB["user_"+str(username)].find_one(
-        {"frameno":frameno,"name":imagename,"userid":userid}
-    )
-    return result["base64"]
+    #return all dict sort by frame number
+    def getAllImage(self,username,userid):
+        '''
+        for x in result:
+            print(x["frameno"],x["name"])
+        '''
+        return self.comp4651DB["user_"+str(username)].find({"userid":userid}).sort("frameno")
 
-#find by objectid
-#return base64
-def getBase64ById(username,objectid):
-    result = comp4651DB["user_"+str(username)].find_one(
-        {"_id":objectid}
-    )
-    return result["base64"]
-
-#return all dict sort by frame number
-def getAllImage(username,userid):
-    '''
-    for x in result:
-        print(x["frameno"],x["name"])
-    '''
-    return comp4651DB["user_"+str(username)].find({"userid":userid}).sort("frameno")
+#db = mongodbController(gvar.MONGO_HOST,gvar.MONGO_PORT)

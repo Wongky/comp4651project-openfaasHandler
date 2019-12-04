@@ -3,8 +3,9 @@
 import cv2 #opencv-python 4.1.1.26 : https://pypi.org/project/opencv-python/
 import base64
 from darknet import Yolov3  #another option (not try): https://pypi.org/project/darknetpy/
-import mongodbController as db
-import redisController as temp
+from mongodbController import mongodbController
+from redisController import redisController
+import globalconstant as gvar
 
 #save to redis
 '''
@@ -13,10 +14,6 @@ with open(videoname,"r+b") as src:
     videoBytes = src.read()
 temp.saveVideo(videoname,videoBytes)
 '''
-
-classesfile = "darknet/yolov3.txt"
-configfile = "darknet/yolov3.cfg"
-weightfile = "darknet/yolov3.weights"
 
 #create collection
 '''
@@ -28,7 +25,9 @@ print("username: {}, userid: {}, collection name: {}".format(username,userid,col
 
 #req = "name.mp4"
 def handle(username):
-    yolo = Yolov3(classesfile,configfile,weightfile)
+    yolo = Yolov3(gvar.classesfile,gvar.configfile,gvar.weightfile)
+    temp = redisController(gvar.REDIS_HOST,gvar.REDIS_PORT)
+    db = mongodbController(gvar.MONGO_HOST,gvar.MONGO_PORT)
     userid = db.getUserID(username)
     #https://stackoverflow.com/questions/33311153/python-extracting-and-saving-video-frames
     #print(cv2.__version__)
@@ -38,7 +37,7 @@ def handle(username):
     #print("Frames per second using video.get(cv2.CAP_PROP_FPS) : {0}".format(fps))
     success,image = vidcap.read()
     totalframe = 0
-    frameno = 0
+    frameno = 0.0
     success = True
     print("Reading Frame...")
     while success:

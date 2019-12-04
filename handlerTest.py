@@ -1,8 +1,10 @@
 #test
 import base64
-import mongodbController as db
+from mongodbController import mongodbController
+import globalconstant as gvar
 from handler import handle
 
+db = mongodbController(gvar.MONGO_HOST,gvar.MONGO_PORT)
 username = "yolotest.mp4"
 handle(username)
 userid = db.getUserID(username)
