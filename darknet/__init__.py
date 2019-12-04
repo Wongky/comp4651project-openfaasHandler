@@ -5,8 +5,8 @@
 import cv2
 import numpy as np
 
-#classesfile = "yolov3.txt"
-#configfile = "yolov3.cfg" #https://github.com/pjreddie/darknet/tree/master/cfg
+#classesfile = "coco.names" #https://github.com/pjreddie/darknet/blob/master/data/coco.names
+#configfile = "yolov3.cfg" #https://github.com/pjreddie/darknet/tree/master/cfg/yolov3.cfg
 #weightfile = "yolov3.weights" #wget https://pjreddie.com/media/files/yolov3.weights
 
 scale = 0.00392

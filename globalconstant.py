@@ -1,6 +1,6 @@
 #change constant in here
 
-classesfile = "darknet/yolov3.txt"
+classesfile = "darknet/coco.names"
 configfile = "darknet/yolov3.cfg"
 weightfile = "darknet/yolov3.weights"
 

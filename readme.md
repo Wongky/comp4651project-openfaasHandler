@@ -16,8 +16,9 @@ redis==3.3.11
 ## Setup
 
 ### Setup for YoloV3
-Put the following file in `darkent/` folder
-- [yolov3.cfg](https://github.com/pjreddie/darknet/tree/master/cfg)
+Put the following file in e.g. `darkent/` folder
+- [coco.names](https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names)
+- [yolov3.cfg](https://raw.githubusercontent.com/pjreddie/darknet/master/cfg/yolov3.cfg)
 - [yolov3.weights](https://pjreddie.com/media/files/yolov3.weights)
 
 test video `yolotest.mp4` is from https://www.youtube.com/watch?v=vF1RPI6j7b0
@@ -32,7 +33,8 @@ change constant in `globalconstant.py`
 ### asynchandler.py
 handle trigger process request
 
-- url: e.g. `http://127.0.0.1:31112/function/process`
+- url: e.g. `http://127.0.0.1:31112/async-function/process`
+- set header: e.g. `X-Callback-Url=http://127.0.0.1:31112/function/detection`
 - request body: filename:String, e.g. `yolotest.mp4`
 - response body: userid (object id in MongoDB process collection)
 
@@ -42,6 +44,24 @@ test: see `asynchandlerTest.py`
 ```
 $ python3 asynchandlerTest.py 
 5de78728d1694216c0eb0ee7
+```
+
+requirements
+```
+pymongo==3.9.0
+```
+
+for openFass handler
+```
+$faas-cli new --lang python3 process
+```
+```
+process.yml (auto gen by fass-cli)
+process/
+├── handler.py   #replace with asynchandler.py
+├── globalconstant.py
+├── mongodbController.py
+└── requirements.txt (refer above requirements)
 ```
 
 ### handler.py
@@ -60,6 +80,30 @@ video temp path:  /tmp/yolotest.mp4
 Reading Frame...
 Read Frame total:  19
 Userid:  5de78728d1694216c0eb0ee7
+```
+
+requirments:
+```
+numpy==1.17.4
+opencv-python==4.1.2.30
+pymongo==3.9.0
+redis==3.3.11
+```
+
+for openFass handler
+```
+$faas-cli new --lang python3 detection
+```
+```
+detection.yml (auto gen by fass-cli)
+detection/
+├── handler.py   #replace with handler.py
+├── globalconstant.py
+├── mongodbController.py
+├── redisController.py
+├── darknet
+│   └── __init__.py
+└── requirements.txt (refer above requirements)
 ```
 
 ## Database
