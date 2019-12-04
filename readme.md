@@ -78,7 +78,7 @@ status:
 - `removed`: user's collection removed
 
 schema:
-```Json
+```Javascript
 {
     "_id":ObjectId, //userobject id
     "username": String, //videoname 
@@ -96,7 +96,7 @@ status = processCol.find_one({"_id":userid})["status"]
 
 #### User collection
 schema:
-```Json
+```Javascript
 {
     "_id":ObjectId, //image id
     "frameno": String, //frame number
@@ -112,3 +112,7 @@ mongoclient = pymongo.MongoClient("mongodb://localhost:27017/")
 comp4651DB = mongoclient["comp4651"]
 comp4651DB["user_"+str(videoname)].find({"userid":userid}).sort("frameno")
 ```
+
+
+base64 for test in client: `yolotest.mp4_0.jpg.txt`
+- `data:image/jpeg;base64, <base64>`
