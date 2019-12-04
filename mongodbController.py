@@ -1,26 +1,32 @@
-#ref: https://www.runoob.com/python3/python-mongodb.html
+#manage mongo
+
+#https://www.runoob.com/python3/python-mongodb.html
 
 import pymongo #pymongo-3.9.0 https://pypi.org/project/pymongo/
-#from bson.objectid import ObjectId
+from bson.objectid import ObjectId
 
 #run mongo server `$./mongod`
 
 mongoclient = pymongo.MongoClient("mongodb://localhost:27017/")
-comp4651DB = mongoclient["comp4651"]
+comp4651DB = mongoclient["comp4651"] #DB name
 processCol = comp4651DB["process"] #user process collection
 
-#status: pending, done, removed
-#=======================================================#
+def getObjectId(idstring):
+    return ObjectId(idstring)
 
-#return objectid
+#status: pending, done, removed
+#===================users process============================#
+
+#return objectid string
 def insertUserProcess(username,status="pending"):
-    return processCol.insert_one(
+    return str(processCol.insert_one(
         {"username":username,"status":status}
-    ).inserted_id
+    ).inserted_id)
 
 #status="done"
 #return True if updated
-def updateUserProcess(objectid):
+def updateUserProcess(userid):
+    objectid = getObjectId(userid)
     if getUserProcess(objectid)=="removed":
         print("Userid{} data is removed".format(objectid))
         return False
@@ -32,24 +38,33 @@ def updateUserProcess(objectid):
         return True
 
 #return status
-def getUserProcess(objectid):
+def getUserProcess(userid):
+    objectid = getObjectId(userid)
     result = processCol.find_one({"_id":objectid})
     return result["status"]
 #print(getUserProcess(ObjectId("5de71d051d7cf1955bd01da5")))
 
-#=======================================================#
+#return user objectId or False for not found
+def getUserID(username):
+    result = processCol.find({"username":username})
+    for x in result:
+        if x["status"]!="removed":
+            return x["_id"]
+    return False
+
+#===================user image=============================#
 
 #return collection name
 def createuserdb(username,replace=False):
     colname = "user_"+str(username)
     if replace:
+        #remove username status
+        processCol.update_many(
+            {"username":username},
+            { "$set": { "status": "removed" }}
+        )
         if colname in comp4651DB.list_collection_names(): #replace same user
             print("username database exists. removing")
-            #remove username status
-            processCol.update_many(
-                {"username":username},
-                { "$set": { "status": "removed" }}
-            )
             comp4651DB[colname].drop()
     return colname
 

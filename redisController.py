@@ -1,8 +1,10 @@
+#manage redis
+
 #https://redis.io/topics/quickstart
 #https://redis.io/topics/data-types-intro
 
 import redis #redis 3.3.11: https://pypi.org/project/redis/
-import tempfile
+import tempfile #another option (failed): #https://stackoverflow.com/questions/56972903/how-to-read-mkv-bytes-as-video/
 
 #run redis server `$redis-server`
 
