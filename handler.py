@@ -55,7 +55,8 @@ def handle(username):
             userid,
             frameno,
             "{}_{}.jpg".format(username,totalframe),
-            base64.b64encode(buffer)
+            #base64.b64encode(buffer) #type(bytes)
+            base64.b64encode(buffer).decode() #type(str)
             )
             #print('image{} id: {}'.format(totalframe,imageid))
 

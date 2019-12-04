@@ -118,7 +118,7 @@ schema:
     "frameno": float, //frame number
     "name": String, //image name
     "userid": String, //user object id string
-    "base64": bytes, //base64 encoded jpg,
+    "base64": String, //base64 encoded jpg,
 }
 ```
 
@@ -129,5 +129,5 @@ comp4651DB = mongoclient["comp4651"]
 comp4651DB["user_"+str(videoname)].find({"userid":userid}).sort("frameno")
 ```
 
-base64 for test in client: `yolotest.mp4_0.jpg.txt`
+base64 for test in client: `yolotest.mp4_0.jpg_w.txt`
 - `data:image/jpeg;base64, <base64>`

@@ -16,6 +16,8 @@ if db.getUserProcess(userid) == "done":
     allimg = db.getAllImage(username,userid)
     for x in allimg:
         #print("image{} id: {}".format(x["frameno"],x["_id"]))
+        # with open("{}{}_w.txt".format(outpath,x["name"]),"w") as des:
+        #     des.write(x["base64"])
         out=base64.b64decode(x["base64"])
         with open("{}{}".format(outpath,x["name"]),"w+b") as des:
             des.write(out)
