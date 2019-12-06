@@ -26,7 +26,6 @@ print("username: {}, userid: {}, collection name: {}".format(username,userid,col
 
 #req = "name.mp4"
 def handle(username):
-    #print("username: {}, userid: {}, collection name: {}".format(username,userid,colname))
     #cwd = os.getcwd()
     # print(cwd)
     # yolo = Yolov3(
@@ -40,6 +39,8 @@ def handle(username):
     colname = db.createuserdb(username,True)
     userid = db.insertUserProcess(username)
     #userid = db.getUserID(username)
+    print("username: {}, userid: {}, collection name: {}".format(username,userid,colname))
+
     #https://stackoverflow.com/questions/33311153/python-extracting-and-saving-video-frames
     #print(cv2.__version__)
     #vidcap = cv2.VideoCapture("yolotest.mp4") #video from: https://www.youtube.com/watch?v=vF1RPI6j7b0
@@ -80,4 +81,4 @@ def handle(username):
             vidcap.release()
             print("Read Frame total: ",str(totalframe))
             db.updateUserProcess(userid) #"done"
-    return
+    return userid

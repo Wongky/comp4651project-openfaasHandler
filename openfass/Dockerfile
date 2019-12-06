@@ -1,62 +1,74 @@
-FROM openfaas/classic-watchdog:0.18.1 as watchdog
+FROM python:3
 
-FROM python:3-alpine
-
+#######
 # Allows you to add additional self packages via build-arg
-ARG ADDITIONAL_MYPACKAGE
+# put to python path
+ARG ADDITIONAL_PACKAGE_FOLDERNAME
+#######
 
-# Allows you to add additional packages via build-arg
-ARG ADDITIONAL_PACKAGE
+#######
+# Allows you to add additional folder via build-arg
+# folder need to copy to cwd of running function
+# dont user "function", "python", "darknet"
+ARG ADDITIONAL_FILE_FOLDERNAME
+#######
 
-COPY --from=watchdog /fwatchdog /usr/bin/fwatchdog
-RUN chmod +x /usr/bin/fwatchdog
-RUN apk --no-cache add ca-certificates ${ADDITIONAL_PACKAGE}
+#app running current directory
+ARG VAR_CWD=/home/app
+
+#python path (dont change)
+ARG VAR_PYTHON=${VAR_CWD}/python
+
+RUN curl -sSL https://github.com/openfaas/faas/releases/download/0.13.0/fwatchdog > /usr/bin/fwatchdog \
+    && chmod +x /usr/bin/fwatchdog
 
 # Add non root user
-RUN addgroup -S app && adduser app -S -G app
+RUN addgroup --system app && adduser --system --group app 
 
-WORKDIR /home/app/
+WORKDIR ${VAR_CWD}/
 
 COPY index.py           .
 COPY requirements.txt   .
 
-RUN chown -R app /home/app && \
-  mkdir -p /home/app/python && chown -R app /home/app
+RUN chown -R app ${VAR_CWD} && \
+  mkdir -p ${VAR_PYTHON} && chown -R app ${VAR_CWD}
 USER app
-ENV PATH=$PATH:/home/app/.local/bin:/home/app/python/bin/
-ENV PYTHONPATH=$PYTHONPATH:/home/app/python
-
-RUN pip install -r requirements.txt --target=/home/app/python
+ENV PATH=$PATH:${VAR_CWD}/.local/bin:${VAR_PYTHON}/bin/
+ENV PYTHONPATH=$PYTHONPATH:${VAR_PYTHON}
+RUN pip install -r requirements.txt --target=${VAR_PYTHON}
 
 RUN mkdir -p function
 RUN touch ./function/__init__.py
-
-WORKDIR /home/app/function/
+WORKDIR ${VAR_CWD}/function/
 COPY function/requirements.txt	.
+RUN pip install -r requirements.txt --target=${VAR_PYTHON}
 
-RUN pip install -r requirements.txt --target=/home/app/python
-
-### directly copy package to python path 
-WORKDIR /home/app/python/
-#COPY function/mypackage
-COPY ${ADDITIONAL_MYPACKAGE} .
-### 
-
-
-WORKDIR /home/app/
-
+WORKDIR ${VAR_CWD}/
 USER root
 
+######get darknet file
+RUN mkdir -p darknet
+WORKDIR ${VAR_CWD}/darknet
+RUN wget -q https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names && wget -q https://raw.githubusercontent.com/pjreddie/darknet/master/cfg/yolov3.cfg && wget -q https://pjreddie.com/media/files/yolov3.weights
+#######
+
+WORKDIR ${VAR_CWD}/
 COPY function           function
 
-RUN chown -R app:app ./ && \
-  chmod -R 777 /home/app/python
+#############use package in function
+RUN if [ "x$ADDITIONAL_PACKAGE_FOLDERNAME" = "x" ] ; then echo Argument ADDITIONAL_PACKAGE_FOLDERNAME not provided ; else mv "function/$ADDITIONAL_PACKAGE_FOLDERNAME" "python/$ADDITIONAL_PACKAGE_FOLDERNAME" ; fi
+#############
+#############copy file to cwd
+RUN if [ "x$ADDITIONAL_FILE_FOLDERNAME" = "x" ] ; then echo Argument ADDITIONAL_FILE_FOLDERNAME not provided ; else mv "function/$ADDITIONAL_FILE_FOLDERNAME" "$ADDITIONAL_FILE_FOLDERNAME" ; fi
+##############
 
+WORKDIR ${VAR_CWD}/
+RUN chown -R app:app ./ && \
+  chmod -R 777 ${VAR_PYTHON}
 USER app
 
 ENV fprocess="python3 index.py"
-EXPOSE 8080
 
-HEALTHCHECK --interval=3s CMD [ -e /tmp/.lock ] || exit 1
+HEALTHCHECK --interval=1s CMD [ -e /tmp/.lock ] || exit 1
 
 CMD ["fwatchdog"]

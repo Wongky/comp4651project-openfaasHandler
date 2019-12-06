@@ -1,8 +1,17 @@
 #test
 import base64
+from mypackage.redisController import redisController
 from mypackage.mongodbController import mongodbController
 from mypackage import globalconstant as gvar
 from handler import handle
+
+#test
+#save redis
+temp = redisController(gvar.REDIS_HOST,gvar.REDIS_PORT)
+videoname = "yolotest.mp4"
+with open(videoname,"r+b") as src:
+    videoBytes = src.read()
+temp.saveVideo(videoname,videoBytes) 
 
 db = mongodbController(gvar.MONGO_HOST,gvar.MONGO_PORT)
 username = "yolotest.mp4"

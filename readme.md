@@ -1,6 +1,9 @@
 
-# Yolov3 detection
+# Yolov3 detection openfass handler
 Detect object in video with [darknet YoloV3 method](https://pjreddie.com/darknet/yolo/)
+
+- (web part)[https://github.com/ytlamal/comp4651_project]: ytlamal
+- (container part)[https://github.com/sheldonchiu/Comp4651-Project]: sheldonchiu
 
 ## Python environment
 - Version: Python 3.6.8
@@ -11,124 +14,33 @@ opencv-python==4.1.2.30
 pymongo==3.9.0
 redis==3.3.11
 ```
-- Test in: Ubuntu 18.04.3 LTS
+- Locally Tested in: 
+    - os: Ubuntu 18.04.3 LTS
+    - redis: Redis 5.0.6 (00000000/0) 64 bit
+    - mongodb: mongodb-linux-x86_64-ubuntu1804-4.2.1
+
+- build openfass Tested in:
+    - minikube
+    - Kubernetes
+    - follow [this](https://medium.com/faun/getting-started-with-openfaas-on-minikube-634502c7acdf)
 
 ## Setup
 
 ### Setup for YoloV3
-Put the following file in e.g. `darkent/` folder
+Put the following file in `<cwd>/darkent/` folder
 - [coco.names](https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names)
 - [yolov3.cfg](https://raw.githubusercontent.com/pjreddie/darknet/master/cfg/yolov3.cfg)
 - [yolov3.weights](https://pjreddie.com/media/files/yolov3.weights)
-
-test video `yolotest.mp4` is from https://www.youtube.com/watch?v=vF1RPI6j7b0
 
 ### global constant
 change constant in `globalconstant.py`
 
 ## Openfass handler
-1. asynchandler.py
-2. handler.py
+**handler.py**
+- handle detection
 
-**Method1:**
-
-use `openfass/Dockerfile` to build or add following line in the dockerfile:
-```
-FROM python:3-alpine
-
-...
-
-#### ADD THIS #####
-# Allows you to add additional self packages via build-arg
-ARG ADDITIONAL_MYPACKAGE
-#################
-...
-
-ENV PYTHONPATH=$PYTHONPATH:/home/app/python
-
-...
-
-#### ADD THIS #####
-### directly copy package to python path 
-WORKDIR /home/app/python/
-COPY ${ADDITIONAL_MYPACKAGE} .
-### 
-#################
-```
-
-**Method2**
-
-use the `openfass/__init__.py` in the function package
-
-### asynchandler.py
-handle trigger process request
-
-- url: e.g. `http://127.0.0.1:31112/async-function/process`
-- set header: e.g. `X-Callback-Url=http://127.0.0.1:31112/function/detection`
-- request body: filename:String, e.g. `yolotest.mp4`
-- response body: userid (object id in MongoDB process collection)
-
-Check MongoDB process collection to get the process status.
-
-test: see `asynchandlerTest.py`
-```shell
-$ python3 asynchandlerTest.py 
-5de78728d1694216c0eb0ee7
-```
-
-if user already exist with show remove line 
-```shell
-$ python3 asynchandlerTest.py 
-remove:  user_yolotest.mp4
-5de9cb36f0dc1e627908a220
-```
-
-requirements
-```
-pymongo==3.9.0
-```
-
-#### Build openFass function
-
-create openFass handler:
-```shell
-$ faas-cli new --lang python3 process
-```
-
-put file in it:
-```
-process.yml (auto gen by fass-cli)
-process/
-├── handler.py   #replace with asynchandler.py
-├── mypackage
-│   ├──  globalconstant.py
-│   ├── mongodbController.py
-│   └── __init__.py   #if use method2, replace with "openfass/__init__.py"
-└── requirements.txt (refer above requirements)
-```
-
-build:
-
-Method1:
-```shell
-$ faas-cli build -f process.yml --build-arg ADDITIONAL_MYPACKAGE=function/mypackage
-```
-
-Method2:
-```shell
-$ faas-cli build -f detection.yml
-```
-
-### handler.py
-handle detection
-
-- url: e.g. `http://127.0.0.1:31112/function/detection`
-- request body: filename:String, e.g. `yolotest.mp4`
-- response body: (ignore)
-
-Check MongoDB user collection with userid to get the processed images.
-
-test: see `handlerTest.py`
+### test in local device: 
+use `handlerTest.py`, test example:
 ```shell
 $ python3 handlerTest.py 
 video temp path:  /tmp/yolotest.mp4
@@ -136,6 +48,9 @@ Reading Frame...
 Read Frame total:  19
 Userid:  5de78728d1694216c0eb0ee7
 ```
+test video `yolotest.mp4` is from https://www.youtube.com/watch?v=vF1RPI6j7b0
+
+### Build openFass function
 
 requirments:
 ```
@@ -145,11 +60,10 @@ pymongo==3.9.0
 redis==3.3.11
 ```
 
-#### Build openFass function
-
-create openFass handler:
+#### create openFass handler:
 ```shell
-$ faas-cli new --lang python3 detection
+$ faas-cli template pull https://github.com/openfaas-incubator/python3-debian
+$ faas-cli new --lang python3-debian detection
 ```
 
 put file in it:
@@ -162,21 +76,61 @@ detection/
 │   ├── mongodbController.py
 │   ├── redisController.py
 │   ├── darknet.py
-│   └── __init__.py    #if use method2, replace with "openfass/__init__.py"
-└── requirements.txt (refer above requirements)
+│   └── __init__.py 
+├── __init__.py  #replace with "openfass/__init__.py" (for additional module method2)
+└── requirements.txt   #replace with "openfass/requirements.txt"
 ```
 
-build:
+replace `template/python3-debian/Dockerfile` with `openfass/Dockerfile`
 
-Method1:
-```shell
-$ faas-cli build -f detection.yml --build-arg ADDITIONAL_MYPACKAGE=function/mypackage
-```
+#### build:
 
-Method2:
 ```shell
 $ faas-cli build -f detection.yml
 ```
+
+**More option:**
+handle additional module import
+- Method1: add path in `detection/__init__.py`, e.g.
+```python
+import sys
+
+#change the location
+sys.path.append("/home/app/function")
+```
+- Method2: use --build-arg `ADDITIONAL_PACKAGE_FOLDERNAME=<path to package relate to detection/>`: copy folder in `build/detection/function` to python env of function container, e.g.
+```shell
+$ faas-cli build -f detection.yml --build-arg ADDITIONAL_PACKAGE_FOLDERNAME=mypackage
+```
+
+handle additional file
+- Method1 : modify the `template/python3-debian/Dockerfile` to store the file, e.g.
+```
+RUN mkdir -p darknet
+WORKDIR ${VAR_CWD}/darknet
+RUN wget https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names
+```
+- Method2: use --build-arg `ADDITIONAL_FILE_FOLDERNAME=<path to package relate to detection/>`: copy folder in `build/detection/function` to cwd of function container, e.g.
+```shell
+$ faas-cli build -f detection.yml --build-arg ADDITIONAL_FILE_FOLDERNAME=darknet
+```
+
+### How To Call Openfass Handler
+- url: e.g. `http://127.0.0.1:31112/async-function/detection`
+- set header: e.g. `X-Callback-Url=http://127.0.0.1:31112/function/other`
+- request body: filename:String, e.g. `yolotest.mp4`
+- response body: userid at lastline; e.g.
+```
+remove:  user_yolotest.mp4
+username: yolotest.mp4, userid: 5dea6815d956f9d4dca5dff5, collection name: user_yolotest.mp4
+video temp path:  /tmp/yolotest.mp4
+Reading Frame...
+Read Frame total:  19
+Userid:  5dea6815d956f9d4dca5dff5
+5dea6815d956f9d4dca5dff5
+```
+
+After calling, check MongoDB user collection with userid to get the processed images. see "User process" below 
 
 ## Database
 Redis and MongoDB
@@ -218,7 +172,7 @@ schema:
 }
 ```
 
-get particular user status:
+To get particular user status:
 ```python
 mongoclient = pymongo.MongoClient("mongodb://localhost:27017/")
 comp4651DB = mongoclient["comp4651"]
@@ -226,7 +180,7 @@ processCol = comp4651DB["process"]
 status = processCol.find_one({"_id":userid})["status"]
 ```
 
-get lastest user objectid:
+To get lastest user objectid of same username:
 ```python
 mongoclient = pymongo.MongoClient("mongodb://localhost:27017/")
 comp4651DB = mongoclient["comp4651"]
@@ -238,18 +192,20 @@ for x in result:
 ```
 
 #### User collection
+store all processed images of a username
+
 schema:
 ```Javascript
 {
     "_id":ObjectId, //image id (generated by mongodb)
     "frameno": float, //frame number
-    "name": String, //image name
+    "name": String, //image name (pattern `<username>_<frameno>.jpg`)
     "userid": String, //user object id string
     "base64": String, //base64 encoded jpg,
 }
 ```
 
-get all image of the user:
+To get all image of the user:
 ```python
 mongoclient = pymongo.MongoClient("mongodb://localhost:27017/")
 comp4651DB = mongoclient["comp4651"]
