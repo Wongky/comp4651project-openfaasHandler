@@ -6,6 +6,7 @@ from mypackage.darknet import Yolov3  #another option (not try): https://pypi.or
 from mypackage.mongodbController import mongodbController
 from mypackage.redisController import redisController
 from mypackage import globalconstant as gvar
+#import os
 
 #save to redis
 '''
@@ -25,10 +26,20 @@ print("username: {}, userid: {}, collection name: {}".format(username,userid,col
 
 #req = "name.mp4"
 def handle(username):
+    #print("username: {}, userid: {}, collection name: {}".format(username,userid,colname))
+    #cwd = os.getcwd()
+    # print(cwd)
+    # yolo = Yolov3(
+    #     "{}/{}".format(cwd,gvar.classesfile),
+    #     "{}/{}".format(cwd,gvar.configfile),
+    #     "{}/{}".format(cwd,gvar.weightfile),
+    # )
     yolo = Yolov3(gvar.classesfile,gvar.configfile,gvar.weightfile)
     temp = redisController(gvar.REDIS_HOST,gvar.REDIS_PORT)
     db = mongodbController(gvar.MONGO_HOST,gvar.MONGO_PORT)
-    userid = db.getUserID(username)
+    colname = db.createuserdb(username,True)
+    userid = db.insertUserProcess(username)
+    #userid = db.getUserID(username)
     #https://stackoverflow.com/questions/33311153/python-extracting-and-saving-video-frames
     #print(cv2.__version__)
     #vidcap = cv2.VideoCapture("yolotest.mp4") #video from: https://www.youtube.com/watch?v=vF1RPI6j7b0

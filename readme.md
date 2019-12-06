@@ -30,9 +30,9 @@ change constant in `globalconstant.py`
 1. asynchandler.py
 2. handler.py
 
-**Method1: **
+**Method1:**
 
-use `openfass/Dockerfile` to build or add folling line in the dockerfile:
+use `openfass/Dockerfile` to build or add following line in the dockerfile:
 ```
 FROM python:3-alpine
 
@@ -71,9 +71,16 @@ handle trigger process request
 Check MongoDB process collection to get the process status.
 
 test: see `asynchandlerTest.py`
-```
+```shell
 $ python3 asynchandlerTest.py 
 5de78728d1694216c0eb0ee7
+```
+
+if user already exist with show remove line 
+```shell
+$ python3 asynchandlerTest.py 
+remove:  user_yolotest.mp4
+5de9cb36f0dc1e627908a220
 ```
 
 requirements
@@ -84,8 +91,8 @@ pymongo==3.9.0
 #### Build openFass function
 
 create openFass handler:
-```
-$faas-cli new --lang python3 process
+```shell
+$ faas-cli new --lang python3 process
 ```
 
 put file in it:
@@ -103,13 +110,13 @@ process/
 build:
 
 Method1:
-```
-faas-cli build -f process.yml --build-arg ADDITIONAL_MYPACKAGE=function/mypackage
+```shell
+$ faas-cli build -f process.yml --build-arg ADDITIONAL_MYPACKAGE=function/mypackage
 ```
 
 Method2:
-```
-faas-cli build -f detection.yml
+```shell
+$ faas-cli build -f detection.yml
 ```
 
 ### handler.py
@@ -122,7 +129,7 @@ handle detection
 Check MongoDB user collection with userid to get the processed images.
 
 test: see `handlerTest.py`
-```
+```shell
 $ python3 handlerTest.py 
 video temp path:  /tmp/yolotest.mp4
 Reading Frame...
@@ -141,8 +148,8 @@ redis==3.3.11
 #### Build openFass function
 
 create openFass handler:
-```
-$faas-cli new --lang python3 detection
+```shell
+$ faas-cli new --lang python3 detection
 ```
 
 put file in it:
@@ -162,13 +169,13 @@ detection/
 build:
 
 Method1:
-```
-faas-cli build -f detection.yml --build-arg ADDITIONAL_MYPACKAGE=function/mypackage
+```shell
+$ faas-cli build -f detection.yml --build-arg ADDITIONAL_MYPACKAGE=function/mypackage
 ```
 
 Method2:
-```
-faas-cli build -f detection.yml
+```shell
+$ faas-cli build -f detection.yml
 ```
 
 ## Database
