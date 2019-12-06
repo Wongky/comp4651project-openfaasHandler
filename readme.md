@@ -194,7 +194,7 @@ schema:
 test: see `asynchandlerTest.py`
 
 ### MongoDB
-Database has one collection for all users process and one collection per user name.
+Database has one collection for all users process and one collection per user name. If duplicated user name, remove collection of older user name. 
 - Database name: `comp4651`
 - Users process collection name: `process`
 - User collection name pattern: `user_<videoname>`, e.g. `user_yolotest.mp4`
@@ -224,6 +224,17 @@ mongoclient = pymongo.MongoClient("mongodb://localhost:27017/")
 comp4651DB = mongoclient["comp4651"]
 processCol = comp4651DB["process"]
 status = processCol.find_one({"_id":userid})["status"]
+```
+
+get lastest user objectid:
+```python
+mongoclient = pymongo.MongoClient("mongodb://localhost:27017/")
+comp4651DB = mongoclient["comp4651"]
+processCol = comp4651DB["process"]
+result = processCol.find({"username":username})
+for x in result:
+    if x["status"]!="removed":
+        userid = str(x["_id"])
 ```
 
 #### User collection
