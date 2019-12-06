@@ -1,7 +1,7 @@
 #test
 import base64
-from mongodbController import mongodbController
-import globalconstant as gvar
+from mypackage.mongodbController import mongodbController
+from mypackage import globalconstant as gvar
 from handler import handle
 
 db = mongodbController(gvar.MONGO_HOST,gvar.MONGO_PORT)

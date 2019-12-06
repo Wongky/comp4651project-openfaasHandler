@@ -1,7 +1,7 @@
 #hander trigger process request
 
-from mongodbController import mongodbController
-import globalconstant as gvar
+from mypackage.mongodbController import mongodbController
+from mypackage import globalconstant as gvar
 
 #req = "name.mp4"
 #return user object id

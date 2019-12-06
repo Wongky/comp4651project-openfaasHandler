@@ -1,5 +1,5 @@
-from redisController import redisController
-import globalconstant as gvar
+from mypackage.redisController import redisController
+from mypackage import globalconstant as gvar
 from asynchandler import handle
 
 #test

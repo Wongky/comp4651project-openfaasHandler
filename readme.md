@@ -30,6 +30,36 @@ change constant in `globalconstant.py`
 1. asynchandler.py
 2. handler.py
 
+**Method1: **
+
+use `openfass/Dockerfile` to build or add folling line in the dockerfile:
+```
+FROM python:3-alpine
+
+...
+
+#### ADD THIS #####
+# Allows you to add additional self packages via build-arg
+ARG ADDITIONAL_MYPACKAGE
+#################
+...
+
+ENV PYTHONPATH=$PYTHONPATH:/home/app/python
+
+...
+
+#### ADD THIS #####
+### directly copy package to python path 
+WORKDIR /home/app/python/
+COPY ${ADDITIONAL_MYPACKAGE} .
+### 
+#################
+```
+
+**Method2**
+
+use the `openfass/__init__.py` in the function package
+
 ### asynchandler.py
 handle trigger process request
 
@@ -51,17 +81,35 @@ requirements
 pymongo==3.9.0
 ```
 
-for openFass handler
+#### Build openFass function
+
+create openFass handler:
 ```
 $faas-cli new --lang python3 process
 ```
+
+put file in it:
 ```
 process.yml (auto gen by fass-cli)
 process/
 ├── handler.py   #replace with asynchandler.py
-├── globalconstant.py
-├── mongodbController.py
+├── mypackage
+│   ├──  globalconstant.py
+│   ├── mongodbController.py
+│   └── __init__.py   #if use method2, replace with "openfass/__init__.py"
 └── requirements.txt (refer above requirements)
+```
+
+build:
+
+Method1:
+```
+faas-cli build -f process.yml --build-arg ADDITIONAL_MYPACKAGE=function/mypackage
+```
+
+Method2:
+```
+faas-cli build -f detection.yml
 ```
 
 ### handler.py
@@ -90,20 +138,37 @@ pymongo==3.9.0
 redis==3.3.11
 ```
 
-for openFass handler
+#### Build openFass function
+
+create openFass handler:
 ```
 $faas-cli new --lang python3 detection
 ```
+
+put file in it:
 ```
 detection.yml (auto gen by fass-cli)
 detection/
 ├── handler.py   #replace with handler.py
-├── globalconstant.py
-├── mongodbController.py
-├── redisController.py
-├── darknet
-│   └── __init__.py
+├── mypackage
+│   ├── globalconstant.py
+│   ├── mongodbController.py
+│   ├── redisController.py
+│   ├── darknet.py
+│   └── __init__.py    #if use method2, replace with "openfass/__init__.py"
 └── requirements.txt (refer above requirements)
+```
+
+build:
+
+Method1:
+```
+faas-cli build -f detection.yml --build-arg ADDITIONAL_MYPACKAGE=function/mypackage
+```
+
+Method2:
+```
+faas-cli build -f detection.yml
 ```
 
 ## Database

@@ -2,10 +2,10 @@
 
 import cv2 #opencv-python 4.1.1.26 : https://pypi.org/project/opencv-python/
 import base64
-from darknet import Yolov3  #another option (not try): https://pypi.org/project/darknetpy/
-from mongodbController import mongodbController
-from redisController import redisController
-import globalconstant as gvar
+from mypackage.darknet import Yolov3  #another option (not try): https://pypi.org/project/darknetpy/
+from mypackage.mongodbController import mongodbController
+from mypackage.redisController import redisController
+from mypackage import globalconstant as gvar
 
 #save to redis
 '''
