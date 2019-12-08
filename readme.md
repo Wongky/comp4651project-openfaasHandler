@@ -4,7 +4,7 @@ Detect object in video with [darknet YoloV3 method](https://pjreddie.com/darknet
 
 Project:
 - [web](https://github.com/ytlamal/comp4651_project)
-- [object detection process]()
+- [object detection process](https://github.com/Wongky/comp4651project-openfaasHandler)
 - [container](https://github.com/sheldonchiu/Comp4651-Project)
 
 ## Python environment
@@ -41,6 +41,9 @@ change constant in `globalconstant.py`
 **handler.py**
 - handle detection
 
+**redistrigger.py**
+- listen to redis and trigger detection
+
 ### test in local device: 
 
 setup:
@@ -55,8 +58,8 @@ $ ./mongod --dbpath=<some path with directory created>
 ```
 
 test muliple videos:
-0. set redis notification in terminal `$ redis-cli config set notify-keyspace-events KEA`
-1. run `redistrigger.py` to listen to video submission and trigger yolo detection
+- set redis notification in terminal `$ redis-cli config set notify-keyspace-events KEA`
+1. run `redistriggerTest.py` to listen to video submission and trigger yolo detection
 2. run `clinetTest.py` to submit create username and submit video to redis
 3. repeat step 2 to test muliple videos (can edit the videoname)
 
@@ -94,7 +97,7 @@ test video `yolotest.mp4` is from https://www.youtube.com/watch?v=vF1RPI6j7b0
 
 ### Build openfaas function
 
-requirments:
+requirments for yolodetection:
 ```
 numpy==1.17.4
 opencv-python==4.1.2.30
@@ -102,16 +105,23 @@ pymongo==3.9.0
 redis==3.3.11
 ```
 
+requirments for redistrigger:
+```
+redis==3.3.11
+requests2==2.16.0
+```
+
 #### create openfaas handler:
 ```shell
 $ faas-cli template pull https://github.com/openfaas-incubator/python3-debian
-$ faas-cli new --lang python3-debian detection
+$ faas-cli new --lang python3-debian yolodetection
+$ faas-cli new --lang python3-debian redistrigger
 ```
 
 put file in it:
 ```
-detection.yml (auto gen by fass-cli)
-detection/
+yolodetection.yml (auto gen by fass-cli)
+yolodetection/
 ├── handler.py   #replace with handler.py
 ├── mypackage
 │   ├── globalconstant.py
@@ -120,7 +130,17 @@ detection/
 │   ├── darknet.py
 │   └── __init__.py 
 ├── __init__.py  #replace with "openfaas/__init__.py" (for additional module method2)
-└── requirements.txt   #replace with "openfaas/requirements.txt"
+└── requirements.txt   #replace with "openfaas/yolodetection/requirements.txt"
+
+redistrigger.yml (auto gen by fass-cli)
+redistrigger/
+├── handler.py   #replace with redistrigger.py rename as handler.py
+├── mypackage
+│   ├── globalconstant.py
+│   ├── redisController.py
+│   └── __init__.py 
+├── __init__.py  #replace with "openfaas/__init__.py" (for additional module method2)
+└── requirements.txt   #replace with "openfaas/redistrigger/requirements.txt"
 ```
 
 replace `template/python3-debian/Dockerfile` with `openfaas/Dockerfile`
@@ -128,7 +148,8 @@ replace `template/python3-debian/Dockerfile` with `openfaas/Dockerfile`
 #### build:
 
 ```shell
-$ faas-cli build -f detection.yml
+$ faas-cli build -f yolodetection.yml
+$ faas-cli build -f redistrigger.yml
 ```
 
 **More option:**
@@ -158,7 +179,7 @@ $ faas-cli build -f detection.yml --build-arg ADDITIONAL_FILE_FOLDERNAME=darknet
 ```
 
 ### How To Call openfaas Handler
-- url: e.g. `http://127.0.0.1:31112/async-function/detection`
+- url: e.g. `http://127.0.0.1:31112/async-function/yolodetection`
 - set header: e.g. `X-Callback-Url=http://127.0.0.1:31112/function/other`
 - request body: filename:String, e.g. `yolotest.mp4`
 - response body: userid at lastline; e.g.
@@ -171,8 +192,12 @@ Read Frame total:  19
 Userid:  5dea6815d956f9d4dca5dff5
 5dea6815d956f9d4dca5dff5
 ```
-
 After calling, check MongoDB user collection with userid to get the processed images. see "User process" below 
+
+
+or user redistrigger listen to video uploaded and call yolodetection automatically 
+- url: e.g. `$ faas-cli invoke redistrigger --async`
+
 
 ## Database
 Redis and MongoDB
@@ -218,6 +243,10 @@ schema:
 action done by client before upload video to redis:
 - If duplicated user name, remove collection of older user name.
 ```python
+mongoclient = pymongo.MongoClient("mongodb://localhost:27017/")
+comp4651DB = mongoclient["comp4651"]
+processCol = comp4651DB["process"]
+
 #remove username status=submitted,pending,done
 processCol.update_many(
     {"username":username},
