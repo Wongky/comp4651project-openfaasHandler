@@ -1,9 +1,11 @@
 
-# Yolov3 detection openfass handler
+# Yolov3 detection openfaas handler
 Detect object in video with [darknet YoloV3 method](https://pjreddie.com/darknet/yolo/)
 
-- (web part)[https://github.com/ytlamal/comp4651_project]: ytlamal
-- (container part)[https://github.com/sheldonchiu/Comp4651-Project]: sheldonchiu
+Project:
+- [web](https://github.com/ytlamal/comp4651_project)
+- [object detection process]()
+- [container](https://github.com/sheldonchiu/Comp4651-Project)
 
 ## Python environment
 - Version: Python 3.6.8
@@ -19,7 +21,7 @@ redis==3.3.11
     - redis: Redis 5.0.6 (00000000/0) 64 bit
     - mongodb: mongodb-linux-x86_64-ubuntu1804-4.2.1
 
-- build openfass Tested in:
+- build openfaas Tested in:
     - minikube
     - Kubernetes
     - follow [this](https://medium.com/faun/getting-started-with-openfaas-on-minikube-634502c7acdf)
@@ -35,12 +37,52 @@ Put the following file in `<cwd>/darkent/` folder
 ### global constant
 change constant in `globalconstant.py`
 
-## Openfass handler
+## openfaas handler
 **handler.py**
 - handle detection
 
 ### test in local device: 
-use `handlerTest.py`, test example:
+
+setup:
+- run redis server in a terminal
+```shell
+$ redis-server
+```
+- run mongodb in another terminal
+```shell
+$ cd /usr/local/mongodb/bin
+$ ./mongod --dbpath=<some path with directory created>
+```
+
+test muliple videos:
+0. set redis notification in terminal `$ redis-cli config set notify-keyspace-events KEA`
+1. run `redistrigger.py` to listen to video submission and trigger yolo detection
+2. run `clinetTest.py` to submit create username and submit video to redis
+3. repeat step 2 to test muliple videos (can edit the videoname)
+
+test sample output:
+```shell
+$ python3 redistrigger.py
+{'type': 'psubscribe', 'pattern': None, 'channel': b'__keyspace@0__:*', 'data': 1}
+Handler {'type': 'pmessage', 'pattern': b'__keyspace@0__:*', 'channel': b'__keyspace@0__:yolotest.mp4', 'data': b'set'}
+yolotest.mp4 is set
+video temp path:  /tmp/yolotest.mp4
+Reading Frame...
+username: yolotest.mp4, userid: 5dec4fda2d3399b3632d30fb is removed
+Userid:  False
+Handler {'type': 'pmessage', 'pattern': b'__keyspace@0__:*', 'channel': b'__keyspace@0__:yolotest.mp4', 'data': b'set'}
+yolotest.mp4 is set
+video temp path:  /tmp/yolotest.mp4
+Reading Frame...
+Read Frame total:  19
+Userid:  5dec4fddd6ab3378ab4d098b
+```
+
+single video test:
+1. run `clinetTest.py` to submit create username and submit video to redis
+2. run `handlerTest.py` if video is in redis
+
+test sample output:
 ```shell
 $ python3 handlerTest.py 
 video temp path:  /tmp/yolotest.mp4
@@ -50,7 +92,7 @@ Userid:  5de78728d1694216c0eb0ee7
 ```
 test video `yolotest.mp4` is from https://www.youtube.com/watch?v=vF1RPI6j7b0
 
-### Build openFass function
+### Build openfaas function
 
 requirments:
 ```
@@ -60,7 +102,7 @@ pymongo==3.9.0
 redis==3.3.11
 ```
 
-#### create openFass handler:
+#### create openfaas handler:
 ```shell
 $ faas-cli template pull https://github.com/openfaas-incubator/python3-debian
 $ faas-cli new --lang python3-debian detection
@@ -77,11 +119,11 @@ detection/
 │   ├── redisController.py
 │   ├── darknet.py
 │   └── __init__.py 
-├── __init__.py  #replace with "openfass/__init__.py" (for additional module method2)
-└── requirements.txt   #replace with "openfass/requirements.txt"
+├── __init__.py  #replace with "openfaas/__init__.py" (for additional module method2)
+└── requirements.txt   #replace with "openfaas/requirements.txt"
 ```
 
-replace `template/python3-debian/Dockerfile` with `openfass/Dockerfile`
+replace `template/python3-debian/Dockerfile` with `openfaas/Dockerfile`
 
 #### build:
 
@@ -115,7 +157,7 @@ RUN wget https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.nam
 $ faas-cli build -f detection.yml --build-arg ADDITIONAL_FILE_FOLDERNAME=darknet
 ```
 
-### How To Call Openfass Handler
+### How To Call openfaas Handler
 - url: e.g. `http://127.0.0.1:31112/async-function/detection`
 - set header: e.g. `X-Callback-Url=http://127.0.0.1:31112/function/other`
 - request body: filename:String, e.g. `yolotest.mp4`
@@ -159,8 +201,9 @@ test: see `handlerTest.py`
 Store all users process.
 
 status: 
-- `pending`: processing
-- `done`: processed
+- `submitted` : user submitted form
+- `pending`: detection processing
+- `done`: detection processed
 - `removed`: user's collection removed
 
 schema:
@@ -172,6 +215,25 @@ schema:
 }
 ```
 
+action done by client before upload video to redis:
+- If duplicated user name, remove collection of older user name.
+```python
+#remove username status=submitted,pending,done
+processCol.update_many(
+    {"username":username},
+    { "$set": { "status": "removed" }}
+)
+
+colname = "user_"+str(username)
+# remove collection of user name
+if colname in comp4651DB.list_collection_names():
+    comp4651DB[colname].drop()
+#create new user of the user name
+userid = str(processCol.insert_one(
+            {"username":username,"status":"submitted"}
+        ).inserted_id)
+```
+
 To get particular user status:
 ```python
 mongoclient = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -180,15 +242,16 @@ processCol = comp4651DB["process"]
 status = processCol.find_one({"_id":userid})["status"]
 ```
 
-To get lastest user objectid of same username:
+To get user objectid of same username:
 ```python
 mongoclient = pymongo.MongoClient("mongodb://localhost:27017/")
 comp4651DB = mongoclient["comp4651"]
 processCol = comp4651DB["process"]
-result = processCol.find({"username":username})
+result = processCol.find({"username":username, "status" : {$not: "removed"}})
 for x in result:
-    if x["status"]!="removed":
-        userid = str(x["_id"])
+    #status = submitted or pending or done
+    userid = str(x["_id"])
+    break
 ```
 
 #### User collection
