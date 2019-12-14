@@ -1,4 +1,4 @@
-#redis trigger process
+#listen to redis and trigger detection
 
 #https://redis.io/topics/pubsub
 #https://www.cnblogs.com/leguan1314/p/9642859.html
@@ -7,7 +7,6 @@
 import redis #redis 3.3.11: https://pypi.org/project/redis/
 import time
 from mypackage import globalconstant as gvar
-from handlerTest import test
 import requests
 
 def messageDecode(msg):

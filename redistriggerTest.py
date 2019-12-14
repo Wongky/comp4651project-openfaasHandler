@@ -1,4 +1,8 @@
+#test redis trigger
+# $ redis-cli config set notify-keyspace-events KEA
+
 import redistrigger as rt
+from handlerTest import test
 
 def event_handler_test(msg):
     key, operation = rt.messageDecode(msg)

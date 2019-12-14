@@ -37,11 +37,11 @@ Put the following file in `<cwd>/darkent/` folder
 ### global constant
 change constant in `globalconstant.py`
 
-## openfaas handler
-**handler.py**
+## handler
+**handler.py** (openfaas handler)
 - handle detection
 
-**redistrigger.py**
+**redistrigger.py** (docker images)
 - listen to redis and trigger detection
 
 ### test in local device: 
@@ -95,7 +95,9 @@ Userid:  5de78728d1694216c0eb0ee7
 ```
 test video `yolotest.mp4` is from https://www.youtube.com/watch?v=vF1RPI6j7b0
 
-### Build openfaas function
+### Build
+
+#### Build openfaas function
 
 requirments for yolodetection:
 ```
@@ -105,17 +107,10 @@ pymongo==3.9.0
 redis==3.3.11
 ```
 
-requirments for redistrigger:
-```
-redis==3.3.11
-requests2==2.16.0
-```
-
-#### create openfaas handler:
+##### create openfaas handler:
 ```shell
 $ faas-cli template pull https://github.com/openfaas-incubator/python3-debian
 $ faas-cli new --lang python3-debian yolodetection
-$ faas-cli new --lang python3-debian redistrigger
 ```
 
 put file in it:
@@ -129,41 +124,30 @@ yolodetection/
 │   ├── redisController.py
 │   ├── darknet.py
 │   └── __init__.py 
-├── __init__.py  #replace with "openfaas/__init__.py" (for additional module method2)
-└── requirements.txt   #replace with "openfaas/yolodetection/requirements.txt"
-
-redistrigger.yml (auto gen by fass-cli)
-redistrigger/
-├── handler.py   #replace with redistrigger.py rename as handler.py
-├── mypackage
-│   ├── globalconstant.py
-│   ├── redisController.py
-│   └── __init__.py 
-├── __init__.py  #replace with "openfaas/__init__.py" (for additional module method2)
-└── requirements.txt   #replace with "openfaas/redistrigger/requirements.txt"
+├── __init__.py  #replace with "docker/yolodetection/__init__.py" (for additional module method2)
+└── requirements.txt   #replace with "docker/yolodetection/requirements.txt"
 ```
 
 replace `template/python3-debian/Dockerfile` with `openfaas/Dockerfile`
 
-#### build:
+##### build:
 
 ```shell
 $ faas-cli build -f yolodetection.yml
-$ faas-cli build -f redistrigger.yml
 ```
 
 **More option:**
 handle additional module import
-- Method1: add path in `detection/__init__.py`, e.g.
+- Method1: add path in `yolodetection/__init__.py`, e.g.
 ```python
 import sys
 
 #change the location
 sys.path.append("/home/app/function")
 ```
-- Method2: use --build-arg `ADDITIONAL_PACKAGE_FOLDERNAME=<path to package relate to detection/>`: copy folder in `build/detection/function` to python env of function container, e.g.
+- Method2: use --build-arg `ADDITIONAL_PACKAGE_FOLDERNAME=<path to package relate to yolodetection/>`: copy folder in `build/yolodetection/function` to python env of function container, e.g.
 ```shell
-$ faas-cli build -f detection.yml --build-arg ADDITIONAL_PACKAGE_FOLDERNAME=mypackage
+$ faas-cli build -f yolodetection.yml --build-arg ADDITIONAL_PACKAGE_FOLDERNAME=mypackage
 ```
 
 handle additional file
@@ -173,10 +157,29 @@ RUN mkdir -p darknet
 WORKDIR ${VAR_CWD}/darknet
 RUN wget https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names
 ```
-- Method2: use --build-arg `ADDITIONAL_FILE_FOLDERNAME=<path to package relate to detection/>`: copy folder in `build/detection/function` to cwd of function container, e.g.
+- Method2: use --build-arg `ADDITIONAL_FILE_FOLDERNAME=<path to package relate to yolodetection/>`: copy folder in `build/yolodetection/function` to cwd of function container, e.g.
 ```shell
-$ faas-cli build -f detection.yml --build-arg ADDITIONAL_FILE_FOLDERNAME=darknet
+$ faas-cli build -f yolodetection.yml --build-arg ADDITIONAL_FILE_FOLDERNAME=darknet
 ```
+
+#### Build redistrigger docker image
+
+requirments for redistrigger:
+```
+redis==3.3.11
+requests2==2.16.0
+```
+
+folder structure
+redistrigger/
+├── redistrigger.py
+├── mypackage
+│   ├── globalconstant.py
+│   ├── redisController.py
+│   └── __init__.py 
+└──__init__.py  #replace with "docker/redistrigger/__init__.py" (for additional module method2)
+
+build in docker image ...
 
 ### How To Call openfaas Handler
 - url: e.g. `http://127.0.0.1:31112/async-function/yolodetection`
@@ -196,8 +199,7 @@ After calling, check MongoDB user collection with userid to get the processed im
 
 
 or user redistrigger listen to video uploaded and call yolodetection automatically 
-- url: e.g. `$ faas-cli invoke redistrigger --async`
-
+- set redis notification `$ redis-cli config set notify-keyspace-events KEA`
 
 ## Database
 Redis and MongoDB
